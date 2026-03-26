@@ -20,7 +20,7 @@ export default function FeedHealth({ summary }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
         {sorted.map(([name, v]) => (
           <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 62, fontSize: 11, fontWeight: 600, color: T.textSecondary, flexShrink: 0 }}>{name}</div>
+            <div style={{ width: 110, fontSize: 11, fontWeight: 600, color: T.textSecondary, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={name}>{name}</div>
             <div style={{ flex: 1, height: 20, background: T.bg, borderRadius: 6, overflow: 'hidden', position: 'relative' }}>
               <div style={{
                 height: '100%', width: `${(v.total / maxT) * 100}%`,

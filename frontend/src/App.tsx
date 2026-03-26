@@ -7,7 +7,9 @@ import RegionChart from './components/RegionChart';
 import FeedHealth from './components/FeedHealth';
 import LineageView from './components/LineageView';
 import DataTable from './components/DataTable';
-import type { FiltersResponse } from './types/pnl';
+import ResizableSplit from './components/ResizableSplit';
+import SearchableSelect from './components/SearchableSelect';
+import { T } from './styles/tokens';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -17,6 +19,10 @@ export default function App() {
     page, setPage, sortBy, sortDir, handleSort,
     selectedNpl, setSelectedNpl,
   } = usePnlData(filters);
+
+  const nplOptions = (filterOptions?.npl_names ?? []).map(n => ({
+    value: n, label: n,
+  }));
 
   return (
     <Layout
@@ -35,10 +41,13 @@ export default function App() {
 
       {activeTab === 'dashboard' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <RegionChart summary={summary} />
-            <FeedHealth summary={summary} />
-          </div>
+          <ResizableSplit
+            left={<RegionChart summary={summary} />}
+            right={<FeedHealth summary={summary} />}
+            defaultLeftPercent={35}
+            minLeftPercent={20}
+            maxLeftPercent={65}
+          />
           <DataTable
             dataResp={dataResp}
             selectedNpl={selectedNpl}
@@ -55,19 +64,19 @@ export default function App() {
 
       {activeTab === 'lineage' && (
         <>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Select Named P&L:</span>
-            <select
-              style={{
-                padding: '8px 12px', borderRadius: '8px', border: '1px solid #E3E8F0',
-                background: '#FFFFFF', color: '#1E293B', fontSize: 12, minWidth: 260,
-              }}
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Named P&L:
+            </span>
+            <SearchableSelect
+              options={nplOptions}
               value={selectedNpl}
-              onChange={e => setSelectedNpl(e.target.value)}
-            >
-              <option value="">— Choose a P&L —</option>
-              {filterOptions?.npl_names.map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
+              onChange={setSelectedNpl}
+              placeholder="Search Named P&L..."
+              accentColor={T.accent}
+              allLabel={`All Named P&Ls (${nplOptions.length})`}
+              width={320}
+            />
           </div>
           <LineageView lineage={lineage} />
         </>

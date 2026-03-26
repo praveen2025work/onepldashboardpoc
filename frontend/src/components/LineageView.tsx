@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { T } from '../styles/tokens';
 import type { LineageResponse, FeedDetail, MasterBookDetail } from '../types/pnl';
+import SearchableSelect from './SearchableSelect';
 
 interface Props {
   lineage: LineageResponse | null;
@@ -23,14 +24,7 @@ const arrowStyle: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   width: 40, flexShrink: 0, paddingTop: 14, color: T.textMuted, fontSize: 16,
 };
-const selectStyle: React.CSSProperties = {
-  padding: '6px 10px', borderRadius: T.radiusSm, border: `1px solid ${T.cardBorder}`,
-  background: T.surface, color: T.textPrimary, fontFamily: T.font, fontSize: 11,
-  fontWeight: 600, outline: 'none', cursor: 'pointer', minWidth: 140,
-  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-};
-
-const ALL = '__ALL__';
+const ALL = '';
 
 export default function LineageView({ lineage }: Props) {
   const [selectedMb, setSelectedMb] = useState<string>(ALL);
@@ -124,37 +118,38 @@ export default function LineageView({ lineage }: Props) {
           Filter Lineage:
         </span>
 
-        {/* Master Book filter */}
+        {/* Master Book searchable select */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: T.purple }}>Master Book</span>
-          <select
-            style={{ ...selectStyle, borderColor: selectedMb !== ALL ? T.purple : T.cardBorder }}
+          <SearchableSelect
+            options={lineage.master_books.map(mb => ({
+              value: mb.id,
+              label: `${mb.name} (${mb.id})`,
+              sub: `${mb.feeds.length} feed${mb.feeds.length > 1 ? 's' : ''}`,
+              badge: mb.has_breach ? 'SLA' : undefined,
+              badgeColor: T.danger,
+            }))}
             value={selectedMb}
-            onChange={e => setSelectedMb(e.target.value)}
-          >
-            <option value={ALL}>All Master Books ({lineage.master_books.length})</option>
-            {lineage.master_books.map(mb => (
-              <option key={mb.id} value={mb.id}>
-                {mb.name} ({mb.id}) — {mb.feeds.length} feed{mb.feeds.length > 1 ? 's' : ''}
-                {mb.has_breach ? ' ⚠' : ''}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedMb}
+            placeholder="Search master book..."
+            accentColor={T.purple}
+            allLabel={`All Master Books (${lineage.master_books.length})`}
+            width={260}
+          />
         </div>
 
-        {/* Feed filter */}
+        {/* Feed searchable select */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: T.success }}>Feed</span>
-          <select
-            style={{ ...selectStyle, borderColor: selectedFeed !== ALL ? T.success : T.cardBorder }}
+          <SearchableSelect
+            options={uniqueFeeds.map(f => ({ value: f, label: f }))}
             value={selectedFeed}
-            onChange={e => setSelectedFeed(e.target.value)}
-          >
-            <option value={ALL}>All Feeds ({uniqueFeeds.length})</option>
-            {uniqueFeeds.map(f => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
+            onChange={setSelectedFeed}
+            placeholder="Search feed..."
+            accentColor={T.success}
+            allLabel={`All Feeds (${uniqueFeeds.length})`}
+            width={200}
+          />
         </div>
 
         {/* Quick actions */}
@@ -167,7 +162,7 @@ export default function LineageView({ lineage }: Props) {
                 background: T.purpleLight, color: T.purple,
                 fontFamily: T.font, fontSize: 10, fontWeight: 600, cursor: 'pointer',
               }}
-            >Load ALL Master Books</button>
+            >Load ALL</button>
           )}
           {(selectedMb !== ALL || selectedFeed !== ALL) && (
             <button
