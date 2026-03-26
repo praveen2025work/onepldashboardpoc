@@ -4,11 +4,17 @@ import pandas as pd
 
 
 def _safe_str(val: object) -> str:
-    """Convert a value to string, handling NaN/None."""
+    """Convert a value to string, handling NaN/None/np.float64.
+
+    Numeric IDs like 23173.0 become '23173'.
+    """
     if val is None:
         return ""
-    if isinstance(val, float) and math.isnan(val):
-        return ""
+    if isinstance(val, float):
+        if math.isnan(val) or math.isinf(val):
+            return ""
+        # Strip .0 from integer-like floats (e.g. 23173.0 -> "23173")
+        return str(int(val)) if val == int(val) else str(val)
     return str(val).strip()
 
 

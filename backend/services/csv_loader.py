@@ -106,7 +106,21 @@ def load_csv() -> pd.DataFrame:
         _df = pd.read_csv(csv_path)
         logger.info("Loaded CSV from %s", csv_path)
 
-    # Strip whitespace from string columns
+    # Force ID columns to string (pandas reads numeric IDs like 23173 as float)
+    id_cols = [
+        "NamedPnlName", "NamedPnLID", "MasterBookID", "MasterBookName",
+        "MSBk_ID", "FeedName", "Region", "SYEY_ID",
+    ]
+    for col in id_cols:
+        if col in _df.columns:
+            _df[col] = (
+                _df[col]
+                .fillna("")
+                .apply(lambda v: str(int(v)) if isinstance(v, float) and v == v and v == int(v) else str(v))
+                .str.strip()
+            )
+
+    # Strip whitespace from remaining string columns
     str_cols = _df.select_dtypes(include=["object"]).columns
     for col in str_cols:
         _df[col] = _df[col].fillna("").astype(str).str.strip()

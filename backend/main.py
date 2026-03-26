@@ -16,11 +16,16 @@ from models import (
 
 
 def _s(val: object) -> str:
-    """Safe string conversion for DataFrame values (handles NaN/None)."""
+    """Safe string conversion for DataFrame values (handles NaN/None/np.float64).
+
+    Numeric IDs like 23173.0 become '23173'.
+    """
     if val is None:
         return ""
-    if isinstance(val, float) and math.isnan(val):
-        return ""
+    if isinstance(val, float):
+        if math.isnan(val) or math.isinf(val):
+            return ""
+        return str(int(val)) if val == int(val) else str(val)
     return str(val).strip()
 
 
