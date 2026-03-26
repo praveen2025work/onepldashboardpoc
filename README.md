@@ -90,6 +90,26 @@ npm run dev
 
 Open **http://localhost:5173** in your browser.
 
+#### Corporate / Private npm Registry
+
+If `npm ci` or `npm install` fails with 404 errors (e.g., `electron-to-chromium` not found on your internal Nexus/Artifactory registry), delete the lockfile and reinstall:
+
+```bash
+# Windows
+del package-lock.json
+rmdir /s /q node_modules
+npm install
+npm run dev
+
+# macOS / Linux
+rm package-lock.json
+rm -rf node_modules
+npm install
+npm run dev
+```
+
+This regenerates `package-lock.json` against your registry with versions it has cached. Do not commit this lockfile back if it differs from the repo version.
+
 The Vite dev server proxies `/api` requests to `http://localhost:8000`, so no CORS issues in development.
 
 ## API Endpoints
