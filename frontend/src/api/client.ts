@@ -10,6 +10,8 @@ function buildFilterParams(filters: Filters): Record<string, string> {
   if (filters.npl) params.npl = filters.npl;
   if (filters.flaggedOnly) params.flagged_only = 'true';
   if (filters.search) params.search = filters.search;
+  if (filters.durMin > 0) params.dur_min = String(filters.durMin);
+  if (filters.durMax < 24) params.dur_max = String(filters.durMax);
   return params;
 }
 

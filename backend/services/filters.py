@@ -10,6 +10,8 @@ def apply_filters(
     npl: Optional[str] = None,
     flagged_only: bool = False,
     search: Optional[str] = None,
+    dur_min: Optional[float] = None,
+    dur_max: Optional[float] = None,
 ) -> pd.DataFrame:
     filtered = df.copy()
 
@@ -24,6 +26,12 @@ def apply_filters(
 
     if flagged_only:
         filtered = filtered[filtered["flagged"]]
+
+    if dur_min is not None:
+        filtered = filtered[filtered["DurationAvg"] >= dur_min]
+
+    if dur_max is not None:
+        filtered = filtered[filtered["DurationAvg"] <= dur_max]
 
     if search:
         s = search.lower()

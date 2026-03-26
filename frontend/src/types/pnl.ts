@@ -84,4 +84,6 @@ export interface Filters {
   npl: string;
   flaggedOnly: boolean;
   search: string;
+  durMin: number;
+  durMax: number;
 }

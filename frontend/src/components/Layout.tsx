@@ -2,6 +2,8 @@ import React from 'react';
 import { T } from '../styles/tokens';
 import type { Filters, FiltersResponse, SummaryResponse } from '../types/pnl';
 import SearchableSelect from './SearchableSelect';
+import DurationSlider from './DurationSlider';
+import { DUR_RANGE_MIN, DUR_RANGE_MAX } from '../hooks/useFilters';
 
 interface Props {
   activeTab: string;
@@ -14,6 +16,7 @@ interface Props {
   onNpl: (v: string) => void;
   onFlaggedOnly: (v: boolean) => void;
   onSearch: (v: string) => void;
+  onDurRange: (min: number, max: number) => void;
   children: React.ReactNode;
 }
 
@@ -31,7 +34,7 @@ const TABS = [
 
 export default function Layout({
   activeTab, onTabChange, filters, filterOptions, summary,
-  onRegion, onFeed, onNpl, onFlaggedOnly, onSearch, children,
+  onRegion, onFeed, onNpl, onFlaggedOnly, onSearch, onDurRange, children,
 }: Props) {
   const totalRecords = summary?.total_records ?? 0;
   const filteredRecords = summary?.filtered_records ?? 0;
@@ -113,15 +116,14 @@ export default function Layout({
           allLabel={`All Named P&Ls (${filterOptions?.npl_names.length ?? 0})`}
           width={250}
         />
-        <button onClick={() => onFlaggedOnly(!filters.flaggedOnly)} style={{
-          padding: '8px 16px', borderRadius: 20,
-          border: `1.5px solid ${filters.flaggedOnly ? T.danger : T.cardBorder}`,
-          background: filters.flaggedOnly ? T.dangerLight : 'transparent',
-          color: filters.flaggedOnly ? T.danger : T.textSecondary,
-          fontFamily: T.font, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-        }}>
-          {filters.flaggedOnly ? '✕' : '○'} SLA Breaches Only (&gt;5h)
-        </button>
+        <DurationSlider
+          min={DUR_RANGE_MIN}
+          max={DUR_RANGE_MAX}
+          valueMin={filters.durMin}
+          valueMax={filters.durMax}
+          onChange={onDurRange}
+          slaThreshold={5}
+        />
         <div style={{ marginLeft: 'auto', fontSize: 11, color: T.textMuted }}>
           <span style={{ color: T.textPrimary, fontWeight: 700 }}>{filteredRecords.toLocaleString()}</span> / {totalRecords.toLocaleString()} records
         </div>

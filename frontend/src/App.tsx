@@ -13,7 +13,7 @@ import { T } from './styles/tokens';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { filters, setRegion, setFeed, setNpl, setFlaggedOnly, setSearch } = useFilters();
+  const { filters, setRegion, setFeed, setNpl, setFlaggedOnly, setSearch, setDurRange } = useFilters();
   const {
     summary, dataResp, lineage, filterOptions, error,
     page, setPage, sortBy, sortDir, handleSort,
@@ -36,6 +36,7 @@ export default function App() {
       onNpl={setNpl}
       onFlaggedOnly={setFlaggedOnly}
       onSearch={setSearch}
+      onDurRange={setDurRange}
     >
       {error && (
         <div style={{

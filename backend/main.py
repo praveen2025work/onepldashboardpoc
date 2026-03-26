@@ -72,10 +72,12 @@ def pnl_summary(
     npl: Optional[str] = None,
     flagged_only: bool = False,
     search: Optional[str] = None,
+    dur_min: Optional[float] = None,
+    dur_max: Optional[float] = None,
 ):
     df = load_csv()
     total_records = len(df)
-    filtered = apply_filters(df, region, feed, npl, flagged_only, search)
+    filtered = apply_filters(df, region, feed, npl, flagged_only, search, dur_min, dur_max)
     filtered_count = len(filtered)
     sla_breaches = int(filtered["flagged"].sum())
     breach_pct = round((sla_breaches / filtered_count * 100), 1) if filtered_count > 0 else 0.0
@@ -113,13 +115,15 @@ def pnl_data(
     npl: Optional[str] = None,
     flagged_only: bool = False,
     search: Optional[str] = None,
+    dur_min: Optional[float] = None,
+    dur_max: Optional[float] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(15, ge=1, le=100),
     sort_by: str = "DurationAvg",
     sort_dir: str = "desc",
 ):
     df = load_csv()
-    filtered = apply_filters(df, region, feed, npl, flagged_only, search)
+    filtered = apply_filters(df, region, feed, npl, flagged_only, search, dur_min, dur_max)
 
     if sort_by in filtered.columns:
         ascending = sort_dir == "asc"
