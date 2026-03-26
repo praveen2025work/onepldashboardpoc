@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Filters, SummaryResponse, DataResponse, LineageResponse, FiltersResponse } from '../types/pnl';
 import { fetchSummary, fetchData, fetchLineage, fetchFilters } from '../api/client';
 
@@ -7,30 +7,44 @@ export function usePnlData(filters: Filters) {
   const [dataResp, setDataResp] = useState<DataResponse | null>(null);
   const [lineage, setLineage] = useState<LineageResponse | null>(null);
   const [filterOptions, setFilterOptions] = useState<FiltersResponse | null>(null);
+  const [error, setError] = useState<string>('');
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState('DurationAvg');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [selectedNpl, setSelectedNpl] = useState('');
 
+  // Serialize filters to detect actual value changes (avoid object ref issues)
+  const filtersKey = JSON.stringify(filters);
+
   useEffect(() => {
-    fetchFilters().then(setFilterOptions).catch(console.error);
+    setError('');
+    fetchFilters()
+      .then(setFilterOptions)
+      .catch(e => { console.error('fetchFilters failed:', e); setError(`Filters: ${e.message}`); });
   }, []);
 
   useEffect(() => {
-    fetchSummary(filters).then(setSummary).catch(console.error);
-  }, [filters]);
+    setError('');
+    fetchSummary(filters)
+      .then(setSummary)
+      .catch(e => { console.error('fetchSummary failed:', e); setError(`Summary: ${e.message}`); });
+  }, [filtersKey]);
 
   useEffect(() => {
     setPage(1);
-  }, [filters]);
+  }, [filtersKey]);
 
   useEffect(() => {
-    fetchData(filters, page, 15, sortBy, sortDir).then(setDataResp).catch(console.error);
-  }, [filters, page, sortBy, sortDir]);
+    fetchData(filters, page, 15, sortBy, sortDir)
+      .then(setDataResp)
+      .catch(e => { console.error('fetchData failed:', e); setError(`Data: ${e.message}`); });
+  }, [filtersKey, page, sortBy, sortDir]);
 
   useEffect(() => {
     if (selectedNpl) {
-      fetchLineage(selectedNpl).then(setLineage).catch(console.error);
+      fetchLineage(selectedNpl)
+        .then(setLineage)
+        .catch(e => { console.error('fetchLineage failed:', e); setError(`Lineage: ${e.message}`); });
     } else {
       setLineage(null);
     }
@@ -48,7 +62,7 @@ export function usePnlData(filters: Filters) {
   }, []);
 
   return {
-    summary, dataResp, lineage, filterOptions,
+    summary, dataResp, lineage, filterOptions, error,
     page, setPage, sortBy, sortDir, handleSort,
     selectedNpl, setSelectedNpl,
   };

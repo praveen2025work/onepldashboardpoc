@@ -15,7 +15,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { filters, setRegion, setFeed, setNpl, setFlaggedOnly, setSearch } = useFilters();
   const {
-    summary, dataResp, lineage, filterOptions,
+    summary, dataResp, lineage, filterOptions, error,
     page, setPage, sortBy, sortDir, handleSort,
     selectedNpl, setSelectedNpl,
   } = usePnlData(filters);
@@ -37,6 +37,14 @@ export default function App() {
       onFlaggedOnly={setFlaggedOnly}
       onSearch={setSearch}
     >
+      {error && (
+        <div style={{
+          padding: '12px 18px', borderRadius: T.radiusSm, background: '#FEF2F2',
+          border: '1px solid #FECACA', color: '#DC2626', fontSize: 12, fontWeight: 600,
+        }}>
+          API Error: {error} — Is the backend running on port 8000?
+        </div>
+      )}
       <KpiCards summary={summary} />
 
       {activeTab === 'dashboard' && (
