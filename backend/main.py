@@ -13,6 +13,24 @@ from models import (
     LineageResponse,
     SummaryResponse,
 )
+
+
+def _s(val: object) -> str:
+    """Safe string conversion for DataFrame values (handles NaN/None)."""
+    if val is None:
+        return ""
+    if isinstance(val, float) and math.isnan(val):
+        return ""
+    return str(val).strip()
+
+
+def _f(val: object) -> float:
+    """Safe float conversion for DataFrame values (handles NaN/None)."""
+    try:
+        v = float(val)
+        return 0.0 if math.isnan(v) or math.isinf(v) else round(v, 2)
+    except (ValueError, TypeError):
+        return 0.0
 from services.csv_loader import load_csv, get_row_count
 from services.filters import apply_filters
 from services.lineage import build_lineage
@@ -56,7 +74,7 @@ def pnl_summary(
     filtered_count = len(filtered)
     sla_breaches = int(filtered["flagged"].sum())
     breach_pct = round((sla_breaches / filtered_count * 100), 1) if filtered_count > 0 else 0.0
-    avg_dur = round(float(filtered["DurationAvg"].mean()), 2) if filtered_count > 0 else 0.0
+    avg_dur = _f(filtered["DurationAvg"].mean()) if filtered_count > 0 else 0.0
 
     by_region = {}
     for r, grp in filtered.groupby("Region"):
@@ -67,7 +85,7 @@ def pnl_summary(
         by_feed[f] = {
             "total": len(grp),
             "flagged": int(grp["flagged"].sum()),
-            "avg_duration": round(float(grp["DurationAvg"].mean()), 2),
+            "avg_duration": _f(grp["DurationAvg"].mean()),
         }
 
     return {
@@ -111,24 +129,24 @@ def pnl_data(
     rows = []
     for _, row in page_data.iterrows():
         rows.append({
-            "NamedPnlName": row["NamedPnlName"],
-            "NamedPnLID": row["NamedPnLID"],
-            "MasterBookID": row["MasterBookID"],
-            "MasterBookName": row["MasterBookName"],
-            "MSBk_ID": row["MSBk_ID"],
-            "FeedName": row["FeedName"],
-            "Region": row["Region"],
-            "SYEY_ID": row["SYEY_ID"],
-            "Avg_CompletedOnTime": row["Avg_CompletedOnTime"],
-            "Max_CompletedOnTime": row["Max_CompletedOnTime"],
-            "Min_CompletedOnTime": row["Min_CompletedOnTime"],
-            "Avg_DelTimePCLocationTime": row["Avg_DelTimePCLocationTime"],
-            "Max_DelTimePCLocationTime": row["Max_DelTimePCLocationTime"],
-            "Min_DelTimePCLocationTime": row["Min_DelTimePCLocationTime"],
-            "DurationAvg": round(float(row["DurationAvg"]), 2),
-            "DurationMax": round(float(row["DurationMax"]), 2),
-            "DurationMin": round(float(row["DurationMin"]), 2),
-            "flagged": bool(row["flagged"]),
+            "NamedPnlName": _s(row.get("NamedPnlName", "")),
+            "NamedPnLID": _s(row.get("NamedPnLID", "")),
+            "MasterBookID": _s(row.get("MasterBookID", "")),
+            "MasterBookName": _s(row.get("MasterBookName", "")),
+            "MSBk_ID": _s(row.get("MSBk_ID", "")),
+            "FeedName": _s(row.get("FeedName", "")),
+            "Region": _s(row.get("Region", "")),
+            "SYEY_ID": _s(row.get("SYEY_ID", "")),
+            "Avg_CompletedOnTime": _s(row.get("Avg_CompletedOnTime", "")),
+            "Max_CompletedOnTime": _s(row.get("Max_CompletedOnTime", "")),
+            "Min_CompletedOnTime": _s(row.get("Min_CompletedOnTime", "")),
+            "Avg_DelTimePCLocationTime": _s(row.get("Avg_DelTimePCLocationTime", "")),
+            "Max_DelTimePCLocationTime": _s(row.get("Max_DelTimePCLocationTime", "")),
+            "Min_DelTimePCLocationTime": _s(row.get("Min_DelTimePCLocationTime", "")),
+            "DurationAvg": _f(row.get("DurationAvg", 0)),
+            "DurationMax": _f(row.get("DurationMax", 0)),
+            "DurationMin": _f(row.get("DurationMin", 0)),
+            "flagged": bool(row.get("flagged", False)),
         })
 
     return {

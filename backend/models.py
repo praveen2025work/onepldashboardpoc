@@ -1,5 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
+import math
 
 
 class HealthResponse(BaseModel):
@@ -60,25 +61,36 @@ class DataResponse(BaseModel):
 
 
 class FeedDetail(BaseModel):
-    feed_name: str
-    bofc_avg: str
-    delivery_avg: str
-    duration_avg: float
-    flagged: bool
+    feed_name: str = ""
+    bofc_avg: str = ""
+    delivery_avg: str = ""
+    duration_avg: float = 0.0
+    flagged: bool = False
+
+    @field_validator("duration_avg", mode="before")
+    @classmethod
+    def sanitize_duration(cls, v: object) -> float:
+        if v is None:
+            return 0.0
+        try:
+            f = float(v)
+            return 0.0 if math.isnan(f) or math.isinf(f) else round(f, 2)
+        except (ValueError, TypeError):
+            return 0.0
 
 
 class MasterBookDetail(BaseModel):
-    id: str
-    name: str
-    has_breach: bool
-    feeds: list[FeedDetail]
+    id: str = ""
+    name: str = ""
+    has_breach: bool = False
+    feeds: list[FeedDetail] = []
 
 
 class LineageResponse(BaseModel):
-    npl_name: str
-    npl_id: str
-    has_breach: bool
-    master_books: list[MasterBookDetail]
+    npl_name: str = ""
+    npl_id: str = ""
+    has_breach: bool = False
+    master_books: list[MasterBookDetail] = []
 
 
 class FiltersResponse(BaseModel):
