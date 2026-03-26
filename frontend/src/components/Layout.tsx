@@ -1,6 +1,7 @@
 import React from 'react';
 import { T } from '../styles/tokens';
 import type { Filters, FiltersResponse, SummaryResponse } from '../types/pnl';
+import SearchableSelect from './SearchableSelect';
 
 interface Props {
   activeTab: string;
@@ -85,18 +86,33 @@ export default function Layout({
           value={filters.search}
           onChange={e => onSearch(e.target.value)}
         />
-        <select style={sel} value={filters.region} onChange={e => onRegion(e.target.value)}>
-          <option value="">All Regions</option>
-          {filterOptions?.regions.map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <select style={sel} value={filters.feed} onChange={e => onFeed(e.target.value)}>
-          <option value="">All Feeds</option>
-          {filterOptions?.feeds.map(f => <option key={f} value={f}>{f}</option>)}
-        </select>
-        <select style={sel} value={filters.npl} onChange={e => onNpl(e.target.value)}>
-          <option value="">All Named P&Ls</option>
-          {filterOptions?.npl_names.map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
+        <SearchableSelect
+          options={(filterOptions?.regions ?? []).map(r => ({ value: r, label: r }))}
+          value={filters.region}
+          onChange={onRegion}
+          placeholder="Search region..."
+          accentColor={T.accent}
+          allLabel={`All Regions (${filterOptions?.regions.length ?? 0})`}
+          width={170}
+        />
+        <SearchableSelect
+          options={(filterOptions?.feeds ?? []).map(f => ({ value: f, label: f }))}
+          value={filters.feed}
+          onChange={onFeed}
+          placeholder="Search feed..."
+          accentColor={T.success}
+          allLabel={`All Feeds (${filterOptions?.feeds.length ?? 0})`}
+          width={200}
+        />
+        <SearchableSelect
+          options={(filterOptions?.npl_names ?? []).map(n => ({ value: n, label: n }))}
+          value={filters.npl}
+          onChange={onNpl}
+          placeholder="Search Named P&L..."
+          accentColor={T.purple}
+          allLabel={`All Named P&Ls (${filterOptions?.npl_names.length ?? 0})`}
+          width={250}
+        />
         <button onClick={() => onFlaggedOnly(!filters.flaggedOnly)} style={{
           padding: '8px 16px', borderRadius: 20,
           border: `1.5px solid ${filters.flaggedOnly ? T.danger : T.cardBorder}`,
