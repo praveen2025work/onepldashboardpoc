@@ -1,46 +1,33 @@
-from typing import Optional
+"""Filter service: month and business area filtering + filter options."""
+from services.csv_loader import load_workflow, load_feed
 
-import pandas as pd
 
+def get_filter_options() -> dict:
+    """Return available months, business areas, and named PNLs.
 
-def apply_filters(
-    df: pd.DataFrame,
-    region: Optional[str] = None,
-    feed: Optional[str] = None,
-    npl: Optional[str] = None,
-    flagged_only: bool = False,
-    search: Optional[str] = None,
-    dur_min: Optional[float] = None,
-    dur_max: Optional[float] = None,
-) -> pd.DataFrame:
-    filtered = df.copy()
+    Months are returned as a list of {key: "2026-02", label: "Feb 2026"}
+    sorted chronologically.
+    """
+    wf = load_workflow()
+    feed = load_feed()
 
-    if region:
-        filtered = filtered[filtered["Region"] == region]
+    # Build month list from both datasets with key (YYYY-MM) and label (Mon YYYY)
+    month_map: dict[str, str] = {}
+    for df in [wf, feed]:
+        for _, row in df[["Month", "MonthLabel"]].drop_duplicates().iterrows():
+            month_map[row["Month"]] = row["MonthLabel"]
 
-    if feed:
-        filtered = filtered[filtered["FeedName"] == feed]
+    # Sort chronologically by key (YYYY-MM sorts naturally)
+    months = [
+        {"key": k, "label": v}
+        for k, v in sorted(month_map.items())
+    ]
 
-    if npl:
-        filtered = filtered[filtered["NamedPnlName"] == npl]
+    areas = sorted(wf["BusinessArea"].unique())
+    npls = sorted(wf["NamedPnlName"].unique())
 
-    if flagged_only:
-        filtered = filtered[filtered["flagged"]]
-
-    if dur_min is not None:
-        filtered = filtered[filtered["DurationAvg"] >= dur_min]
-
-    if dur_max is not None:
-        filtered = filtered[filtered["DurationAvg"] <= dur_max]
-
-    if search:
-        s = search.lower()
-        mask = (
-            filtered["NamedPnlName"].str.lower().str.contains(s, na=False)
-            | filtered["MasterBookID"].str.lower().str.contains(s, na=False)
-            | filtered["MasterBookName"].str.lower().str.contains(s, na=False)
-            | filtered["FeedName"].str.lower().str.contains(s, na=False)
-        )
-        filtered = filtered[mask]
-
-    return filtered
+    return {
+        "months": months,
+        "business_areas": areas,
+        "named_pnls": npls,
+    }

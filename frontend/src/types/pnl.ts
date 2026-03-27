@@ -1,89 +1,79 @@
-export interface PnlRow {
-  NamedPnlName: string;
-  NamedPnLID: string;
-  MasterBookID: string;
-  MasterBookName: string;
-  MSBk_ID: string;
-  FeedName: string;
-  Region: string;
-  SYEY_ID: string;
-  Avg_CompletedOnTime: string;
-  Max_CompletedOnTime: string;
-  Min_CompletedOnTime: string;
-  Avg_DelTimePCLocationTime: string;
-  Max_DelTimePCLocationTime: string;
-  Min_DelTimePCLocationTime: string;
-  DurationAvg: number;
-  DurationMax: number;
-  DurationMin: number;
-  flagged: boolean;
-}
-
-export interface RegionStats {
-  total: number;
-  flagged: number;
-}
-
-export interface FeedStats {
-  total: number;
-  flagged: number;
-  avg_duration: number;
-}
-
-export interface SummaryResponse {
-  total_records: number;
-  filtered_records: number;
-  sla_breaches: number;
-  breach_percentage: number;
-  avg_duration_hours: number;
-  unique_npls: number;
-  unique_master_books: number;
-  by_region: Record<string, RegionStats>;
-  by_feed: Record<string, FeedStats>;
-}
-
-export interface DataResponse {
-  data: PnlRow[];
-  page: number;
-  page_size: number;
-  total_records: number;
-  total_pages: number;
-}
-
-export interface FeedDetail {
-  feed_name: string;
-  bofc_avg: string;
-  delivery_avg: string;
-  duration_avg: number;
-  flagged: boolean;
-}
-
-export interface MasterBookDetail {
-  id: string;
-  name: string;
-  has_breach: boolean;
-  feeds: FeedDetail[];
-}
-
-export interface LineageResponse {
-  npl_name: string;
-  npl_id: string;
-  has_breach: boolean;
-  master_books: MasterBookDetail[];
+export interface MonthOption {
+  key: string;    // "2026-02" — used for API filtering
+  label: string;  // "Feb 2026" — display in UI
 }
 
 export interface FiltersResponse {
-  regions: string[];
-  feeds: string[];
-  npl_names: string[];
+  months: MonthOption[];
+  business_areas: string[];
+  named_pnls: string[];
 }
 
-export interface Filters {
-  region: string;
-  feed: string;
-  npl: string;
-  flaggedOnly: boolean;
-  search: string;
-  durMin: number;
-  durMax: number;
+export interface BusinessAreaCard {
+  area_name: string;
+  total_npls: number;
+  on_time_count: number;
+  on_time_pct: number;
+  status: "green" | "amber" | "red";
+}
+
+export interface OverviewResponse {
+  cards: BusinessAreaCard[];
+}
+
+export interface NplSummaryRow {
+  npl_id: string;
+  npl_name: string;
+  business_area: string;
+  on_time_pct: number;
+  status: "green" | "amber" | "red";
+  total_dates: number;
+}
+
+export interface AreaDrilldownResponse {
+  area_name: string;
+  npls: NplSummaryRow[];
+}
+
+export interface TimestampPoint {
+  business_date: string;
+  bofc_time: string;
+  manual_time: string;
+  delivery_time: string;
+}
+
+export interface DurationPoint {
+  business_date: string;
+  bofc_to_manual: number;
+  manual_to_pc: number;
+  bofc_to_pc: number;
+}
+
+export interface NplDetailResponse {
+  npl_id: string;
+  npl_name: string;
+  business_area: string;
+  timestamps: TimestampPoint[];
+  durations: DurationPoint[];
+}
+
+export interface FeedLineageRow {
+  business_date: string;
+  feed_name: string;
+  master_book_id: string;
+  master_book_name: string;
+  ola_time: string;
+  arrived_time: string;
+  delayed: boolean;
+}
+
+export interface FeedLineageResponse {
+  npl_id: string;
+  npl_name: string;
+  feeds: FeedLineageRow[];
+}
+
+export interface DashboardFilters {
+  month: string;
+  areas: string[];
 }

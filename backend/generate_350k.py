@@ -68,23 +68,56 @@ def make_ist_timestamps(num: int, base_low: float, base_high: float) -> np.ndarr
 
 
 print("  Generating timestamps...")
-avg_completed = make_ist_timestamps(NUM_ROWS, 8, 14)
+avg_completed = make_ist_timestamps(NUM_ROWS, 8, 14)    # BOFC: 8AM-2PM
 max_completed = make_ist_timestamps(NUM_ROWS, 9, 16)
 min_completed = make_ist_timestamps(NUM_ROWS, 6, 12)
-avg_delivery = make_ist_timestamps(NUM_ROWS, 12, 20)
+# ManualStep: after BOFC, before Delivery — typically 1-3h after BOFC
+avg_manual = make_ist_timestamps(NUM_ROWS, 10, 16)      # 10AM-4PM (after BOFC avg 8-14)
+max_manual = make_ist_timestamps(NUM_ROWS, 11, 18)
+min_manual = make_ist_timestamps(NUM_ROWS, 8, 14)
+avg_delivery = make_ist_timestamps(NUM_ROWS, 12, 20)    # Delivery: 12PM-8PM
 max_delivery = make_ist_timestamps(NUM_ROWS, 14, 22)
 min_delivery = make_ist_timestamps(NUM_ROWS, 10, 18)
 
 print("  Generating durations...")
-# ~40% breach rate (DurationAvg > 5)
-is_breach = rng.random(NUM_ROWS) < 0.4
-duration_avg = np.where(
-    is_breach,
-    np.round(5.1 + rng.random(NUM_ROWS) * 5, 2),
-    np.round(0.5 + rng.random(NUM_ROWS) * 4.5, 2),
-)
+# Each NPL gets a distinct duration profile so some average above 5h SLA
+# and others below — giving meaningful green/red splits on the dashboard.
+NPL_PROFILES = {
+    # (breach_rate, breach_center, normal_center) — controls per-NPL avg duration
+    0:  (0.20, 5.5, 2.0),   # Rates Trading NA — mostly fast, low breach
+    1:  (0.75, 7.0, 4.5),   # FX Options EMEA — slow, high breach → avg ~6h
+    2:  (0.65, 6.5, 4.0),   # Credit Flow APAC — moderate-high breach → avg ~5.5h
+    3:  (0.15, 5.3, 1.5),   # Equities Delta One — very fast
+    4:  (0.55, 6.0, 3.5),   # Commodities Structured — borderline → avg ~5h
+    5:  (0.80, 8.0, 5.0),   # EM Rates Trading — worst performer → avg ~7h
+    6:  (0.10, 5.2, 1.8),   # G10 FX Spot — fastest
+    7:  (0.45, 6.5, 3.0),   # Securitized Products — middle
+    8:  (0.25, 5.5, 2.5),   # Repo & Financing — mostly good
+    9:  (0.60, 7.5, 4.0),   # Prime Brokerage — slow → avg ~6h
+    10: (0.35, 5.8, 2.8),   # Macro Trading — slightly below SLA
+    11: (0.70, 7.0, 3.5),   # Vol Trading Desk — high breach → avg ~5.5h
+    12: (0.30, 5.5, 2.0),   # Cross Asset Solutions — decent
+    13: (0.50, 6.0, 3.0),   # Systematic Strategies — borderline
+    14: (0.40, 5.5, 3.0),   # Flow Credit Trading — average
+}
+
+duration_avg = np.zeros(NUM_ROWS)
+for i in range(NUM_ROWS):
+    npl_idx = npl_indices[i]
+    breach_rate, breach_center, normal_center = NPL_PROFILES[npl_idx]
+    if rng.random() < breach_rate:
+        duration_avg[i] = breach_center + rng.random() * 3
+    else:
+        duration_avg[i] = max(0.3, normal_center + (rng.random() - 0.5) * 2)
+duration_avg = np.round(duration_avg, 2)
 duration_max = np.round(duration_avg + rng.random(NUM_ROWS) * 3, 2)
 duration_min = np.round(np.maximum(0.1, duration_avg - rng.random(NUM_ROWS) * 3), 2)
+
+# ManualStep durations: BOFC → ManualStep (subset of total duration, ~30-60% of it)
+manual_ratio = 0.3 + rng.random(NUM_ROWS) * 0.3  # 30-60% of total duration
+duration_manual_avg = np.round(duration_avg * manual_ratio, 2)
+duration_manual_max = np.round(duration_max * (0.3 + rng.random(NUM_ROWS) * 0.3), 2)
+duration_manual_min = np.round(np.maximum(0.1, duration_min * (0.3 + rng.random(NUM_ROWS) * 0.3)), 2)
 
 print("  Building DataFrame...")
 df = pd.DataFrame({
@@ -99,12 +132,18 @@ df = pd.DataFrame({
     "Avg_CompletedOnTime": avg_completed,
     "Max_CompletedOnTime": max_completed,
     "Min_CompletedOnTime": min_completed,
+    "Avg_ManualStepTime": avg_manual,
+    "Max_ManualStepTime": max_manual,
+    "Min_ManualStepTime": min_manual,
     "Avg_DelTimePCLocationTime": avg_delivery,
     "Max_DelTimePCLocationTime": max_delivery,
     "Min_DelTimePCLocationTime": min_delivery,
     "DurationAvg": duration_avg,
     "DurationMax": duration_max,
     "DurationMin": duration_min,
+    "DurationManualAvg": duration_manual_avg,
+    "DurationManualMax": duration_manual_max,
+    "DurationManualMin": duration_manual_min,
 })
 
 out_path = os.path.join(os.path.dirname(__file__), "data", "pnl_data.csv")

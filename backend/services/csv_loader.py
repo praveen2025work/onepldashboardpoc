@@ -1,142 +1,104 @@
 import logging
 import os
-import random
+from typing import Optional
 
 import pandas as pd
 
 logger = logging.getLogger("pnl_dashboard")
 
-from typing import Optional
-_df: Optional[pd.DataFrame] = None
-
-NPL_NAMES = [
-    "Rates Trading NA", "FX Options EMEA", "Credit Flow APAC",
-    "Equities Delta One", "Commodities Structured", "EM Rates Trading",
-    "G10 FX Spot", "Securitized Products", "Repo & Financing",
-    "Prime Brokerage", "Macro Trading", "Vol Trading Desk",
-    "Cross Asset Solutions", "Systematic Strategies", "Flow Credit Trading",
-]
-FEEDS = ["Atlas", "Calypso", "Murex", "Summit", "Kondor", "Sophis", "Endur", "Findur"]
-REGIONS = ["AMER", "EMEA", "APAC", "LATAM"]
+_workflow_df: Optional[pd.DataFrame] = None
+_feed_df: Optional[pd.DataFrame] = None
 
 
-def _fmt_ist(h: int, m: int, s: int) -> str:
-    hr12 = h % 12 or 12
-    ampm = "AM" if h < 12 else "PM"
-    return f"{hr12}:{m:02d}:{s:02d} {ampm}"
+def _data_dir() -> str:
+    return os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "data"))
 
 
-def _rand_ist(base_hour: float, spread: float) -> str:
-    h = int(base_hour + random.random() * spread) % 24
-    m = random.randint(0, 59)
-    s = random.randint(0, 59)
-    return _fmt_ist(h, m, s)
+def _ensure_csvs() -> tuple[str, str]:
+    """Return paths to both CSVs, generating them if missing."""
+    data_dir = _data_dir()
+    workflow_path = os.path.join(data_dir, "npl_workflow.csv")
+    feed_path = os.path.join(data_dir, "feed_to_npl.csv")
+
+    if not os.path.exists(workflow_path) or not os.path.exists(feed_path):
+        logger.warning("CSV files not found, generating sample data...")
+        from generate_data import generate
+        generate()
+
+    return workflow_path, feed_path
 
 
-def _generate_sample_csv(path: str, count: int = 500) -> pd.DataFrame:
-    """Generate a sample CSV with realistic P&L data."""
-    random.seed(42)
-    rows = []
-    npl_master_books: dict[int, list[str]] = {}
-
-    for i in range(count):
-        npl_idx = random.randint(0, len(NPL_NAMES) - 1)
-
-        if npl_idx not in npl_master_books:
-            num_books = random.randint(2, 6)
-            npl_master_books[npl_idx] = [
-                f"MB-{random.randint(10000, 99999):05d}" for _ in range(num_books)
-            ]
-
-        mb_id = random.choice(npl_master_books[npl_idx])
-        feed = random.choice(FEEDS)
-        region = random.choice(REGIONS)
-
-        bofc_base = 8 + random.random() * 6
-        del_base = bofc_base + 2 + random.random() * 8
-
-        # ~40% breach rate
-        if random.random() < 0.4:
-            duration_avg = round(5.1 + random.random() * 5, 2)
-        else:
-            duration_avg = round(0.5 + random.random() * 4.5, 2)
-
-        duration_max = round(duration_avg + random.random() * 3, 2)
-        duration_min = round(max(0.1, duration_avg - random.random() * 3), 2)
-
-        rows.append({
-            "NamedPnlName": NPL_NAMES[npl_idx],
-            "MasterBookID": mb_id,
-            "MasterBookName": f"Book_{NPL_NAMES[npl_idx].split()[0]}_{mb_id[-2:]}",
-            "FeedName": feed,
-            "Region": region,
-            "SYEY_ID": f"SY-{random.randint(1000, 9999)}",
-            "NamedPnLID": f"NPL-{npl_idx + 100:04d}",
-            "MSBk_ID": f"MSB-{random.randint(0, 999999):06d}",
-            "Avg_CompletedOnTime": _rand_ist(bofc_base, 2),
-            "Max_CompletedOnTime": _rand_ist(bofc_base + 1, 2),
-            "Min_CompletedOnTime": _rand_ist(max(6, bofc_base - 2), 1),
-            "Avg_DelTimePCLocationTime": _rand_ist(del_base, 2),
-            "Max_DelTimePCLocationTime": _rand_ist(del_base + 1, 3),
-            "Min_DelTimePCLocationTime": _rand_ist(max(bofc_base + 1, del_base - 2), 1),
-            "DurationAvg": duration_avg,
-            "DurationMax": duration_max,
-            "DurationMin": duration_min,
-        })
-
-    df = pd.DataFrame(rows)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    df.to_csv(path, index=False)
-    logger.info("Generated sample CSV with %d rows at %s", len(df), path)
+def _add_month_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Add Month (YYYY-MM) and MonthLabel (Mon YYYY) columns from BusinessDate."""
+    dates = pd.to_datetime(df["BusinessDate"].astype(str))
+    df["Month"] = dates.dt.strftime("%Y-%m")          # "2026-02" — for filtering & sorting
+    df["MonthLabel"] = dates.dt.strftime("%b %Y")      # "Feb 2026" — for display
     return df
 
 
-def load_csv() -> pd.DataFrame:
-    global _df
-    if _df is not None:
-        return _df
+def load_workflow() -> pd.DataFrame:
+    """Load npl_workflow.csv into a DataFrame (cached)."""
+    global _workflow_df
+    if _workflow_df is not None:
+        return _workflow_df
 
-    csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "pnl_data.csv")
-    csv_path = os.path.normpath(csv_path)
+    workflow_path, _ = _ensure_csvs()
+    _workflow_df = pd.read_csv(workflow_path)
 
-    if not os.path.exists(csv_path):
-        logger.warning("CSV not found at %s, generating sample data...", csv_path)
-        _df = _generate_sample_csv(csv_path)
-    else:
-        _df = pd.read_csv(csv_path)
-        logger.info("Loaded CSV from %s", csv_path)
+    # Parse BusinessDate
+    _workflow_df["BusinessDate"] = pd.to_datetime(_workflow_df["BusinessDate"]).dt.date
 
-    # Force ID columns to string (pandas reads numeric IDs like 23173 as float)
-    id_cols = [
-        "NamedPnlName", "NamedPnLID", "MasterBookID", "MasterBookName",
-        "MSBk_ID", "FeedName", "Region", "SYEY_ID",
-    ]
-    for col in id_cols:
-        if col in _df.columns:
-            _df[col] = (
-                _df[col]
-                .fillna("")
-                .apply(lambda v: str(int(v)) if isinstance(v, float) and v == v and v == int(v) else str(v))
-                .str.strip()
-            )
+    # Add month columns
+    _workflow_df = _add_month_columns(_workflow_df)
 
-    # Strip whitespace from remaining string columns
-    str_cols = _df.select_dtypes(include=["object"]).columns
+    # Ensure string columns are clean
+    str_cols = ["BusinessArea", "NamedPnlId", "NamedPnlName",
+                "BOFCCompletedOn", "ManualCompletedOn", "DeliveryPCLocationTime"]
     for col in str_cols:
-        _df[col] = _df[col].fillna("").astype(str).str.strip()
+        if col in _workflow_df.columns:
+            _workflow_df[col] = _workflow_df[col].fillna("").astype(str).str.strip()
 
-    # Fill NaN numbers with 0
-    num_cols = _df.select_dtypes(include=["number"]).columns
-    for col in num_cols:
-        _df[col] = _df[col].fillna(0)
+    # Ensure duration columns are float
+    dur_cols = ["BOFCToManual", "ManualToPC", "BOFCToPC"]
+    for col in dur_cols:
+        if col in _workflow_df.columns:
+            _workflow_df[col] = pd.to_numeric(_workflow_df[col], errors="coerce").fillna(0.0)
 
-    # Add flagged column
-    _df["flagged"] = _df["DurationAvg"] > 5
-
-    logger.info("Loaded %d rows, %d flagged", len(_df), _df["flagged"].sum())
-    return _df
+    logger.info("Loaded workflow CSV: %d rows", len(_workflow_df))
+    return _workflow_df
 
 
-def get_row_count() -> int:
-    df = load_csv()
-    return len(df)
+def load_feed() -> pd.DataFrame:
+    """Load feed_to_npl.csv into a DataFrame (cached)."""
+    global _feed_df
+    if _feed_df is not None:
+        return _feed_df
+
+    _, feed_path = _ensure_csvs()
+    _feed_df = pd.read_csv(feed_path)
+
+    # Parse BusinessDate
+    _feed_df["BusinessDate"] = pd.to_datetime(_feed_df["BusinessDate"]).dt.date
+
+    # Add month columns
+    _feed_df = _add_month_columns(_feed_df)
+
+    # Ensure string columns are clean
+    str_cols = ["BusinessArea", "NamedPnlId", "NamedPnlName",
+                "MasterBookId", "MasterBookName", "FeedName",
+                "FeedOLA", "FeedArrived"]
+    for col in str_cols:
+        if col in _feed_df.columns:
+            _feed_df[col] = _feed_df[col].fillna("").astype(str).str.strip()
+
+    # Ensure boolean
+    if "FeedDelayed" in _feed_df.columns:
+        _feed_df["FeedDelayed"] = _feed_df["FeedDelayed"].astype(bool)
+
+    logger.info("Loaded feed CSV: %d rows", len(_feed_df))
+    return _feed_df
+
+
+def get_row_counts() -> tuple[int, int]:
+    """Return (workflow_rows, feed_rows)."""
+    return len(load_workflow()), len(load_feed())
