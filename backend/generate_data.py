@@ -361,7 +361,6 @@ def generate(
 
                     feed_rows.append({
                         "BusinessDate": bdate.isoformat(),
-                        "BusinessArea": npl["business_area"],
                         "NamedPnlId": npl["npl_id"],
                         "NamedPnlName": npl["npl_name"],
                         "MasterBookId": book["id"],

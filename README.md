@@ -63,7 +63,46 @@ onepnldashboard/
 
 ---
 
-## CSV File Specifications
+## CSV Quick Reference
+
+### File 1: `feed_to_npl.csv` (Feed → MasterBook → NPL lineage)
+
+| Column | Example |
+|--------|---------|
+| BusinessDate | 2025-09-01 |
+| NamedPnlId | NPL-0100 |
+| NamedPnlName | Credit Flow NA |
+| MasterBookId | MB-79655 |
+| MasterBookName | Book_Credit_55 |
+| FeedName | Endur |
+| FeedOLA | 3:52:59 AM |
+| FeedArrived | 3:36:06 AM |
+| FeedDelayed | False |
+
+### File 2: `npl_workflow.csv` (NPL Workflow/Delivery)
+
+| Column | Example |
+|--------|---------|
+| BusinessDate | 2025-09-01 |
+| BusinessArea | Credit Trading |
+| NamedPnlId | NPL-0100 |
+| NamedPnlName | Credit Flow NA |
+| BOFCCompletedOn | 8:10:59 AM |
+| ManualCompletedOn | 8:56:26 AM |
+| DeliveryPCLocationTime | 10:58:52 AM |
+| BOFCToManual | 0.76 |
+| ManualToPC | 2.04 |
+| BOFCToPC | 2.8 |
+
+**Key notes:**
+- Times are in 12hr format (e.g., `3:52:59 AM`)
+- Durations (`BOFCToManual`, `ManualToPC`, `BOFCToPC`) are in decimal hours
+- `FeedDelayed` is a boolean (`True`/`False`)
+- Both files share `BusinessDate`, `NamedPnlId`, `NamedPnlName` as join keys
+
+---
+
+## CSV File Specifications (Detailed)
 
 Place your real data files in `backend/data/`. The app loads them on startup.
 If files are missing, sample data is auto-generated.
@@ -100,7 +139,6 @@ One row per Feed per MasterBook per Named PNL per business date.
 | Column | Type | Format | Example | Description |
 |--------|------|--------|---------|-------------|
 | BusinessDate | date | YYYY-MM-DD | `2026-02-03` | Business date |
-| BusinessArea | text | | `Credit Trading` | Business area name |
 | NamedPnlId | text | | `NPL-0100` | Must match workflow file |
 | NamedPnlName | text | | `Credit Flow NA` | Must match workflow file |
 | MasterBookId | text | | `MB-68910` | Master book identifier |
@@ -112,9 +150,9 @@ One row per Feed per MasterBook per Named PNL per business date.
 
 Sample:
 ```csv
-BusinessDate,BusinessArea,NamedPnlId,NamedPnlName,MasterBookId,MasterBookName,FeedName,FeedOLA,FeedArrived,FeedDelayed
-2026-02-03,Credit Trading,NPL-0100,Credit Flow NA,MB-68910,Book_Credit_10,Calypso,2:00:00 AM,2:15:30 AM,True
-2026-02-03,Credit Trading,NPL-0100,Credit Flow NA,MB-68910,Book_Credit_10,Murex,3:00:00 AM,2:50:00 AM,False
+BusinessDate,NamedPnlId,NamedPnlName,MasterBookId,MasterBookName,FeedName,FeedOLA,FeedArrived,FeedDelayed
+2026-02-03,NPL-0100,Credit Flow NA,MB-68910,Book_Credit_10,Calypso,2:00:00 AM,2:15:30 AM,True
+2026-02-03,NPL-0100,Credit Flow NA,MB-68910,Book_Credit_10,Murex,3:00:00 AM,2:50:00 AM,False
 ```
 
 ### Multi-Month Support

@@ -84,7 +84,7 @@ def load_feed() -> pd.DataFrame:
     _feed_df = _add_month_columns(_feed_df)
 
     # Ensure string columns are clean
-    str_cols = ["BusinessArea", "NamedPnlId", "NamedPnlName",
+    str_cols = ["NamedPnlId", "NamedPnlName",
                 "MasterBookId", "MasterBookName", "FeedName",
                 "FeedOLA", "FeedArrived"]
     for col in str_cols:
